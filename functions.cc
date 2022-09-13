@@ -128,8 +128,7 @@ static int injectHandle(HANDLE process, const char* dllFile) {
 	}
 
 	// Wait for the remote thread to finish
-	DWORD exitCode;
-	WaitForSingleObject(remoteThread, &exitCode);
+	DWORD exitCode = WaitForSingleObject(remoteThread, 1000);
 	if (exitCode == 0) {
 		// Failed to load the DLL
 		CloseHandle(process);
