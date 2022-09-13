@@ -98,12 +98,14 @@ static int injectHandle(HANDLE process, const char* dllFile) {
 	}
 
 	// Get the LoadLibraryA method from the kernel32 dll
-	LPVOID LoadLib = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+	HMODULE moduleHandle = GetModuleHandle("kernel32.dll");
+	LPVOID LoadLib = (LPVOID)GetProcAddress(moduleHandle, "LoadLibraryA");
 
 	// Allocate memory in the processs for the DLL path, and then write it there
 	LPVOID remotePathSpace = VirtualAllocEx(process, NULL, strlen(dllPath) + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	if (!remotePathSpace) {
 		CloseHandle(process);
+		FreeLibrary(moduleHandle);
 		// Failed to allocate memory
 		return 4;
 	}
@@ -111,6 +113,7 @@ static int injectHandle(HANDLE process, const char* dllFile) {
 	if (!WriteProcessMemory(process, remotePathSpace, dllPath, strlen(dllPath) + 1, NULL)) {
 		// Failed to write memory
 		CloseHandle(process);
+		FreeLibrary(moduleHandle);
 		return 5;
 	}
 
@@ -120,11 +123,23 @@ static int injectHandle(HANDLE process, const char* dllFile) {
 	if (remoteThread == NULL) {
 		// Failed to create remote thread to load the DLL
 		CloseHandle(process);
+		FreeLibrary(moduleHandle);
 		return 6;
+	}
+
+	// Wait for the remote thread to finish
+	DWORD exitCode;
+	WaitForSingleObject(remoteThread, &exitCode);
+	if (exitCode == 0) {
+		// Failed to load the DLL
+		CloseHandle(process);
+		FreeLibrary(moduleHandle);
+		return 7;
 	}
 
 	// Close the handle to the process
 	CloseHandle(process);
+	FreeLibrary(moduleHandle);
 	return 0;
 }
 
