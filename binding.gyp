@@ -8,14 +8,14 @@
 			],
 			"include_dirs": [
 				"<!(node -e \"require('nan')\")"
-			]
+			],
+			"msvs_settings": {
+				"VCCLCompilerTool": {
+					"AdditionalOptions": [
+						"-std:c++17"
+					]
+				}
+			}
 		}
-	],
-	"msvs_settings": {
-		"VCCLCompilerTool": {
-			"AdditionalOptions": [
-				"-std:c++17"
-			]
-		}
-	}
+	]
 }
