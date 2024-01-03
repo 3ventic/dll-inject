@@ -114,8 +114,10 @@ static int injectHandle(HANDLE process, const wchar_t *dllFile)
 	// Get the LoadLibraryW method from the kernel32 dll
 	LPVOID LoadLib = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
 
+	size_t sizeofDllPath = (wcslen(dllPath) + 1) * sizeof(wchar_t);
+
 	// Allocate memory in the processs for the DLL path, and then write it there
-	LPVOID remotePathSpace = VirtualAllocEx(process, NULL, strlen(dllPath) + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	LPVOID remotePathSpace = VirtualAllocEx(process, NULL, sizeofDllPath, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	if (!remotePathSpace)
 	{
 		CloseHandle(process);
@@ -123,7 +125,7 @@ static int injectHandle(HANDLE process, const wchar_t *dllFile)
 		return 4;
 	}
 
-	if (!WriteProcessMemory(process, remotePathSpace, dllPath, strlen(dllPath) + 1, NULL))
+	if (!WriteProcessMemory(process, remotePathSpace, dllPath, sizeofDllPath, NULL))
 	{
 		// Failed to write memory
 		CloseHandle(process);
