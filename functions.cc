@@ -87,7 +87,7 @@ static HANDLE getProcessPID(DWORD pid)
 }
 
 // Inject a DLL file into the given process
-static int injectHandle(HANDLE process, const char *dllFile)
+static int injectHandle(HANDLE process, const wchar_t *dllFile)
 {
 	if (process == NULL)
 	{
@@ -96,8 +96,8 @@ static int injectHandle(HANDLE process, const char *dllFile)
 	}
 
 	// Get full DLL path
-	char dllPath[MAX_PATH];
-	DWORD r = GetFullPathNameA(dllFile, MAX_PATH, dllPath, NULL);
+	wchar_t dllPath[MAX_PATH];
+	DWORD r = GetFullPathNameW(dllFile, MAX_PATH, dllPath, NULL);
 	if (r == 0)
 	{
 		// Getting path name failed
@@ -111,8 +111,8 @@ static int injectHandle(HANDLE process, const char *dllFile)
 		return 3;
 	}
 
-	// Get the LoadLibraryA method from the kernel32 dll
-	LPVOID LoadLib = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryA");
+	// Get the LoadLibraryW method from the kernel32 dll
+	LPVOID LoadLib = (LPVOID)GetProcAddress(GetModuleHandle("kernel32.dll"), "LoadLibraryW");
 
 	// Allocate memory in the processs for the DLL path, and then write it there
 	LPVOID remotePathSpace = VirtualAllocEx(process, NULL, strlen(dllPath) + 1, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -130,7 +130,7 @@ static int injectHandle(HANDLE process, const char *dllFile)
 		return 5;
 	}
 
-	// Load the DLL with CreateRemoteThread + LoadLibraryA
+	// Load the DLL with CreateRemoteThread + LoadLibraryW
 	HANDLE remoteThread = CreateRemoteThread(process, NULL, NULL, (LPTHREAD_START_ROUTINE)LoadLib, (LPVOID)remotePathSpace, NULL, NULL);
 
 	if (remoteThread == NULL)
@@ -170,9 +170,11 @@ bool isProcessRunningInternalPID(DWORD pid)
 }
 
 // Returns PID if a process with the given name is running, else -1
-int getPIDByNameInternal(const char* processName) {
+int getPIDByNameInternal(const char *processName)
+{
 	HANDLE process = getProcess(processName);
-	if (process == NULL) {
+	if (process == NULL)
+	{
 		return -1;
 	}
 	int PID = GetProcessId(process);
@@ -181,13 +183,13 @@ int getPIDByNameInternal(const char* processName) {
 }
 
 // Inject a DLL file into the process with the given name
-int injectInternal(const char *processName, const char *dllFile)
+int injectInternal(const char *processName, const wchar_t *dllFile)
 {
 	return injectHandle(getProcess(processName), dllFile);
 }
 
 // Inject a DLL file into the process with the given pid
-int injectInternalPID(DWORD pid, const char *dllFile)
+int injectInternalPID(DWORD pid, const wchar_t *dllFile)
 {
 	return injectHandle(getProcessPID(pid), dllFile);
 }
@@ -222,7 +224,11 @@ NAN_METHOD(inject)
 	}
 
 	const char *processName = *arg0;
-	const char *dllName = *arg1;
+	std::string strDllName = *arg1;
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &strDllName[0], (int)strDllName.size(), NULL, 0);
+	std::wstring wstrDllName(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &strDllName[0], (int)strDllName.size(), &wstrDllName[0], size_needed);
+	const wchar_t *dllName = wstrDllName.c_str();
 
 	int val = injectInternal(processName, dllName);
 
@@ -259,7 +265,11 @@ NAN_METHOD(injectPID)
 		return;
 	}
 
-	const char *dllName = *arg1;
+	std::string strDllName = *arg1;
+	int size_needed = MultiByteToWideChar(CP_UTF8, 0, &strDllName[0], (int)strDllName.size(), NULL, 0);
+	std::wstring wstrDllName(size_needed, 0);
+	MultiByteToWideChar(CP_UTF8, 0, &strDllName[0], (int)strDllName.size(), &wstrDllName[0], size_needed);
+	const wchar_t *dllName = wstrDllName.c_str();
 
 	int val = injectInternalPID(arg0, dllName);
 
@@ -320,11 +330,13 @@ NAN_METHOD(isProcessRunningPID)
 
 NAN_METHOD(getPIDByName)
 {
-	
-	if (info.Length() != 1) {
+
+	if (info.Length() != 1)
+	{
 		return;
 	}
-	if (!info[0]->IsString()) {
+	if (!info[0]->IsString())
+	{
 		return;
 	}
 
@@ -334,11 +346,12 @@ NAN_METHOD(getPIDByName)
 
 	String::Utf8Value arg(Isolate::GetCurrent(), value);
 
-	if (!(*arg)) {
+	if (!(*arg))
+	{
 		return;
 	}
 
-	const char* processName = *arg;
+	const char *processName = *arg;
 
 	int val = getPIDByNameInternal(processName);
 
