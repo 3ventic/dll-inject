@@ -13,10 +13,10 @@
     "test": "node test/index.js"
   },
   "devDependencies": {
-    "node-gyp": "^10.0.1"
+    "node-gyp": "^10.1.0"
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "nan": "^2.18.0"
+    "nan": "^2.20.0"
   }
 }
