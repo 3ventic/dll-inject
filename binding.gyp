@@ -12,10 +12,10 @@
 			"msvs_settings": {
 				"VCCLCompilerTool": {
 					"AdditionalOptions": [
-						"-std:c++17"
 					]
 				}
-			}
+			},
+			"defines": ["NOMINMAX"]
 		}
 	]
 }
